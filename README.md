@@ -18,8 +18,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DegenGamingToken is ERC20, Ownable {
-    constructor(uint256 initialSupply, address owner) ERC20("DegenGamingToken", "DGT") Ownable(owner) {
-    _mint(owner, initialSupply);
+    address public storeAddress;
+
+    constructor(uint256 initialSupply, address owner, address _storeAddress) ERC20("DegenGamingToken", "DGT") Ownable(owner) {
+        _mint(owner, initialSupply);
+        storeAddress = _storeAddress;
     }
 
     // Minting new tokens, only the owner can do this
@@ -27,9 +30,10 @@ contract DegenGamingToken is ERC20, Ownable {
         _mint(to, amount);
     }
 
-    // Redeeming tokens (burning tokens)
+    // Redeeming tokens for items in the in-game store
     function redeemToken(uint256 amount) public {
-        _burn(msg.sender, amount);
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance to redeem");
+        _transfer(msg.sender, storeAddress, amount);
     }
 
     // Burning tokens
@@ -43,7 +47,13 @@ contract DegenGamingToken is ERC20, Ownable {
         _transfer(msg.sender, to, amount);
         return true;
     }
+
+    // Set the store address (only the owner can do this)
+    function setStoreAddress(address _storeAddress) public onlyOwner {
+        storeAddress = _storeAddress;
+    }
 }
+
 ```
 
 Use a Solidity compiler to compile the DegenGamingToken.sol code into bytecode understandable by the Ethereum Virtual Machine (EVM).
