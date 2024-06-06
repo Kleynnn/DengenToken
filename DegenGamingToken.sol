@@ -6,9 +6,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DegenGamingToken is ERC20, Ownable {
     address public storeAddress;
+    mapping(string => uint256) public itemPrices; // Mapping to store item prices
+    mapping(address => string[]) public redeemedItems; // Mapping to store redeemed items for each player
 
-    constructor(uint256 initialSupply, address owner, address _storeAddress) ERC20("DegenGamingToken", "DGT") Ownable(owner) {
-        _mint(owner, initialSupply);
+    event ItemRedeemed(address indexed player, string itemName, uint256 itemPrice);
+
+    constructor(uint256 initialSupply, address _storeAddress) ERC20("DegenGamingToken", "DGT") Ownable(msg.sender) {
+        _mint(msg.sender, initialSupply);
         storeAddress = _storeAddress;
     }
 
@@ -18,9 +22,15 @@ contract DegenGamingToken is ERC20, Ownable {
     }
 
     // Redeeming tokens for items in the in-game store
-    function redeemToken(uint256 amount) public {
-        require(balanceOf(msg.sender) >= amount, "Insufficient balance to redeem");
-        _transfer(msg.sender, storeAddress, amount);
+    function redeemToken(string memory itemName) public {
+        uint256 itemPrice = itemPrices[itemName];
+        require(itemPrice > 0, "Item does not exist");
+        require(balanceOf(msg.sender) >= itemPrice, "Insufficient balance to redeem");
+
+        _transfer(msg.sender, storeAddress, itemPrice);
+        redeemedItems[msg.sender].push(itemName);
+
+        emit ItemRedeemed(msg.sender, itemName, itemPrice);
     }
 
     // Burning tokens
@@ -31,12 +41,21 @@ contract DegenGamingToken is ERC20, Ownable {
     // Transfer tokens
     function transfer(address to, uint256 amount) public override returns (bool) {
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
-        _transfer(msg.sender, to, amount);
-        return true;
+        return super.transfer(to, amount);
     }
 
     // Set the store address (only the owner can do this)
     function setStoreAddress(address _storeAddress) public onlyOwner {
         storeAddress = _storeAddress;
+    }
+
+    // Set item price (only the owner can do this)
+    function setItemPrice(string memory itemName, uint256 price) public onlyOwner {
+        itemPrices[itemName] = price;
+    }
+
+    // Get the redeemed items for a player
+    function getRedeemedItems(address player) public view returns (string[] memory) {
+        return redeemedItems[player];
     }
 }
